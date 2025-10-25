@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -21,18 +21,42 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles } from "lucide-react";
 
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  category: string;
+  description: string | null;
+  date: string;
+}
+
 interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  transaction?: Transaction | null;
 }
 
-const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps) => {
+const AddTransactionDialog = ({ open, onOpenChange, transaction }: AddTransactionDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (transaction) {
+      setType(transaction.type as "income" | "expense");
+      setAmount(transaction.amount.toString());
+      setDescription(transaction.description || "");
+      setDate(transaction.date);
+    } else {
+      setType("expense");
+      setAmount("");
+      setDescription("");
+      setDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [transaction]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,31 +66,55 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Call edge function to categorize with AI
-      const { data: aiData, error: aiError } = await supabase.functions.invoke("categorize-expense", {
-        body: { description, type, amount: parseFloat(amount) },
-      });
+      let category = transaction?.category;
 
-      if (aiError) throw aiError;
+      // Call edge function to categorize with AI only if not editing or if description changed
+      if (!transaction || transaction.description !== description) {
+        const { data: aiData, error: aiError } = await supabase.functions.invoke("categorize-expense", {
+          body: { description, type, amount: parseFloat(amount) },
+        });
 
-      const category = aiData.category || "Other";
+        if (aiError) throw aiError;
+        category = aiData.category || "Other";
+      }
 
-      // Insert transaction
-      const { error: insertError } = await supabase.from("transactions").insert([{
-        user_id: user.id,
-        type,
-        amount: parseFloat(amount),
-        category,
-        description,
-        date,
-      }]);
+      if (transaction) {
+        // Update existing transaction
+        const { error: updateError } = await supabase
+          .from("transactions")
+          .update({
+            type,
+            amount: parseFloat(amount),
+            category,
+            description,
+            date,
+          })
+          .eq("id", transaction.id);
 
-      if (insertError) throw insertError;
+        if (updateError) throw updateError;
 
-      toast({
-        title: "Transaction added!",
-        description: `Automatically categorized as "${category}" using AI.`,
-      });
+        toast({
+          title: "Transaction updated!",
+          description: `Successfully updated transaction.`,
+        });
+      } else {
+        // Insert new transaction
+        const { error: insertError } = await supabase.from("transactions").insert([{
+          user_id: user.id,
+          type,
+          amount: parseFloat(amount),
+          category,
+          description,
+          date,
+        }]);
+
+        if (insertError) throw insertError;
+
+        toast({
+          title: "Transaction added!",
+          description: `Automatically categorized as "${category}" using AI.`,
+        });
+      }
 
       // Reset form
       setAmount("");
@@ -75,7 +123,7 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
       onOpenChange(false);
     } catch (error: any) {
       toast({
-        title: "Error adding transaction",
+        title: transaction ? "Error updating transaction" : "Error adding transaction",
         description: error.message,
         variant: "destructive",
       });
@@ -90,10 +138,12 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
-            Add Transaction
+            {transaction ? "Edit Transaction" : "Add Transaction"}
           </DialogTitle>
           <DialogDescription>
-            Add a new transaction. AI will automatically categorize it for you.
+            {transaction
+              ? "Update your transaction details."
+              : "Add a new transaction. AI will automatically categorize it for you."}
           </DialogDescription>
         </DialogHeader>
 
@@ -155,7 +205,7 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? "Processing..." : "Add Transaction"}
+            {isLoading ? "Processing..." : transaction ? "Update Transaction" : "Add Transaction"}
           </Button>
         </form>
       </DialogContent>
