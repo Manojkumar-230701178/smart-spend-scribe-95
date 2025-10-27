@@ -6,10 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { TrendingUp, LogOut, Plus, Sparkles } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import DashboardStats from "@/components/DashboardStats";
+import AIInsights from "@/components/AIInsights";
+import AdvancedInsights from "@/components/AdvancedInsights";
+import FinancialCoachChat from "@/components/FinancialCoachChat";
 import ExpenseChart from "@/components/ExpenseChart";
 import RecentTransactions from "@/components/RecentTransactions";
 import AddTransactionDialog from "@/components/AddTransactionDialog";
-import AIInsights from "@/components/AIInsights";
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -89,18 +91,17 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
-        {/* Stats */}
-        <DashboardStats />
-
-        {/* AI Insights Banner */}
-        <div className="mb-8">
-          <AIInsights />
-        </div>
-
-        {/* Charts and Transactions */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <ExpenseChart />
-          <RecentTransactions />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            <DashboardStats />
+            <AdvancedInsights />
+            <ExpenseChart />
+            <RecentTransactions />
+          </div>
+          <div className="space-y-8">
+            <AIInsights />
+            <FinancialCoachChat />
+          </div>
         </div>
       </main>
 

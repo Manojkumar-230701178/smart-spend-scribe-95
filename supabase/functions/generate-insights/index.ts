@@ -27,7 +27,54 @@ serve(async (req) => {
       });
     }
 
-    const summary = `Analyze these transactions and provide 3 concise financial insights: ${JSON.stringify(transactions.slice(0, 10))}`;
+    // Calculate comprehensive financial metrics
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const expenseToIncomeRatio = totalIncome > 0 ? (totalExpenses / totalIncome * 100).toFixed(1) : 0;
+    
+    // Category breakdown
+    const categoryTotals = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + parseFloat(t.amount);
+        return acc;
+      }, {} as Record<string, number>);
+
+    const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
+    const topCategory = topCategoryEntry ? topCategoryEntry[0] : 'N/A';
+    const topCategoryAmount = topCategoryEntry ? topCategoryEntry[1] as number : 0;
+    const topCategoryPercent = totalExpenses > 0 ? (topCategoryAmount / totalExpenses * 100).toFixed(1) : 0;
+
+    // Anomaly detection - find unusually high transactions
+    const expenseAmounts = transactions.filter(t => t.type === 'expense').map(t => parseFloat(t.amount));
+    const avgExpense = expenseAmounts.reduce((a, b) => a + b, 0) / expenseAmounts.length;
+    const anomalies = transactions.filter(t => t.type === 'expense' && parseFloat(t.amount) > avgExpense * 2);
+
+    // Predictive spending (simple average-based forecast)
+    const monthlyAvg = totalExpenses / Math.max(1, new Set(transactions.map(t => t.date.slice(0, 7))).size);
+
+    const prompt = `Analyze this financial data and provide 5-6 insights:
+
+Financial Overview:
+- Total Income: ${totalIncome}
+- Total Expenses: ${totalExpenses}
+- Expense-to-Income Ratio: ${expenseToIncomeRatio}%
+- Top Spending Category: ${topCategory} (${topCategoryPercent}% of expenses)
+- Average Monthly Spending: ${monthlyAvg.toFixed(2)}
+- Predicted Next Month Spending: ${monthlyAvg.toFixed(2)}
+- Unusual Transactions Detected: ${anomalies.length}
+
+Recent Transactions: ${JSON.stringify(transactions.slice(0, 10))}
+
+Provide insights covering:
+1. Expense-to-income ratio health assessment
+2. Top spending category analysis
+3. Specific savings recommendations
+4. Next month spending forecast
+5. Any anomalies or unusual patterns
+6. Actionable tips
+
+Format each insight as a clear, actionable sentence. Start each with an emoji.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -37,13 +84,19 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [{ role: 'user', content: summary }],
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial analyst. Provide clear, specific insights based on the data. Be encouraging but honest about financial health.'
+          },
+          { role: 'user', content: prompt }
+        ],
       }),
     });
 
     const data = await response.json();
     const insightText = data.choices[0].message.content;
-    const insights = insightText.split('\n').filter((i: string) => i.trim()).slice(0, 3);
+    const insights = insightText.split('\n').filter((i: string) => i.trim()).slice(0, 6);
 
     return new Response(JSON.stringify({ insights }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
