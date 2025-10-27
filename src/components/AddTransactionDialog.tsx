@@ -34,9 +34,10 @@ interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transaction?: Transaction | null;
+  onSuccess?: () => void;
 }
 
-const AddTransactionDialog = ({ open, onOpenChange, transaction }: AddTransactionDialogProps) => {
+const AddTransactionDialog = ({ open, onOpenChange, transaction, onSuccess }: AddTransactionDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<"income" | "expense">("expense");
   const [amount, setAmount] = useState("");
@@ -121,6 +122,11 @@ const AddTransactionDialog = ({ open, onOpenChange, transaction }: AddTransactio
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       onOpenChange(false);
+      
+      // Trigger refresh callback
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       toast({
         title: transaction ? "Error updating transaction" : "Error adding transaction",
@@ -167,7 +173,7 @@ const AddTransactionDialog = ({ open, onOpenChange, transaction }: AddTransactio
               id="amount"
               type="number"
               step="0.01"
-              placeholder="0.00"
+              placeholder="₹0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
@@ -176,13 +182,12 @@ const AddTransactionDialog = ({ open, onOpenChange, transaction }: AddTransactio
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description (Optional)</Label>
             <Textarea
               id="description"
               placeholder="e.g., Groceries at Whole Foods"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              required
               disabled={isLoading}
             />
           </div>

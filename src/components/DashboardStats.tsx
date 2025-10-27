@@ -18,6 +18,26 @@ const DashboardStats = () => {
 
   useEffect(() => {
     fetchStats();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('transactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        () => {
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchStats = async () => {
@@ -53,7 +73,7 @@ const DashboardStats = () => {
             </div>
           </div>
           <div className="text-3xl font-bold text-success">
-            ${stats.totalIncome.toFixed(2)}
+            ₹{stats.totalIncome.toFixed(2)}
           </div>
         </CardContent>
       </Card>
@@ -67,7 +87,7 @@ const DashboardStats = () => {
             </div>
           </div>
           <div className="text-3xl font-bold text-danger">
-            ${stats.totalExpenses.toFixed(2)}
+            ₹{stats.totalExpenses.toFixed(2)}
           </div>
         </CardContent>
       </Card>
@@ -81,7 +101,7 @@ const DashboardStats = () => {
             </div>
           </div>
           <div className="text-3xl font-bold">
-            ${stats.balance.toFixed(2)}
+            ₹{stats.balance.toFixed(2)}
           </div>
         </CardContent>
       </Card>

@@ -10,6 +10,26 @@ const ExpenseChart = () => {
 
   useEffect(() => {
     fetchExpensesByCategory();
+
+    // Set up realtime subscription
+    const channel = supabase
+      .channel('expenses-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions'
+        },
+        () => {
+          fetchExpensesByCategory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchExpensesByCategory = async () => {
@@ -57,7 +77,7 @@ const ExpenseChart = () => {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+              <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>

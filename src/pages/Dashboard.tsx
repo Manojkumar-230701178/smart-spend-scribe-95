@@ -109,6 +109,9 @@ const Dashboard = () => {
       <AddTransactionDialog 
         open={isAddDialogOpen} 
         onOpenChange={setIsAddDialogOpen}
+        onSuccess={() => {
+          // Dialog will trigger realtime updates automatically
+        }}
       />
     </div>
   );

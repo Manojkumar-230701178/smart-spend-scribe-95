@@ -128,7 +128,7 @@ const RecentTransactions = () => {
                         transaction.type === "income" ? "text-success" : "text-danger"
                       }`}
                     >
-                      {transaction.type === "income" ? "+" : "-"}${Number(transaction.amount).toFixed(2)}
+                      {transaction.type === "income" ? "+" : "-"}₹{Number(transaction.amount).toFixed(2)}
                     </p>
                     <Badge variant="outline" className="text-xs">
                       {transaction.category}
@@ -184,6 +184,9 @@ const RecentTransactions = () => {
         open={!!editTransaction}
         onOpenChange={(open) => !open && setEditTransaction(null)}
         transaction={editTransaction}
+        onSuccess={() => {
+          // Realtime updates handle the refresh
+        }}
       />
     </Card>
   );
