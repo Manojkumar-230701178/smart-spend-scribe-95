@@ -121,12 +121,12 @@ const AddTransactionDialog = ({ open, onOpenChange, transaction, onSuccess }: Ad
       setAmount("");
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
-      onOpenChange(false);
       
-      // Trigger refresh callback
-      if (onSuccess) {
-        onSuccess();
-      }
+      // Close dialog and trigger callback
+      onOpenChange(false);
+      setTimeout(() => {
+        onSuccess?.();
+      }, 150);
     } catch (error: any) {
       toast({
         title: transaction ? "Error updating transaction" : "Error adding transaction",

@@ -185,7 +185,7 @@ const RecentTransactions = () => {
         onOpenChange={(open) => !open && setEditTransaction(null)}
         transaction={editTransaction}
         onSuccess={() => {
-          // Realtime updates handle the refresh
+          fetchTransactions(); // Force refresh after edit
         }}
       />
     </Card>
