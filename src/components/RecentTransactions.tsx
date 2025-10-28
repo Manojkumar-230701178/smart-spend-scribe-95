@@ -52,8 +52,16 @@ const RecentTransactions = () => {
       )
       .subscribe();
 
+    // Listen for custom transaction events as backup to ensure instant UI updates
+    const handleTransactionChange = () => {
+      fetchTransactions();
+    };
+
+    window.addEventListener('transactionChanged', handleTransactionChange);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('transactionChanged', handleTransactionChange);
     };
   }, []);
 
