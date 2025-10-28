@@ -35,8 +35,16 @@ const DashboardStats = () => {
       )
       .subscribe();
 
+    // Listen for custom transaction events as backup
+    const handleTransactionChange = () => {
+      fetchStats();
+    };
+
+    window.addEventListener('transactionChanged', handleTransactionChange);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('transactionChanged', handleTransactionChange);
     };
   }, []);
 

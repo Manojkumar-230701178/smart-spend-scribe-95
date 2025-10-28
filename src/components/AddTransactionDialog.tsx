@@ -124,9 +124,13 @@ const AddTransactionDialog = ({ open, onOpenChange, transaction, onSuccess }: Ad
       
       // Close dialog and trigger callback
       onOpenChange(false);
+      
+      // Dispatch custom event for immediate UI updates
+      window.dispatchEvent(new CustomEvent('transactionChanged'));
+      
       setTimeout(() => {
         onSuccess?.();
-      }, 150);
+      }, 100);
     } catch (error: any) {
       toast({
         title: transaction ? "Error updating transaction" : "Error adding transaction",

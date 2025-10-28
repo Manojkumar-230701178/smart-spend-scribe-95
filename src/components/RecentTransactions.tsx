@@ -83,6 +83,8 @@ const RecentTransactions = () => {
         title: "Success",
         description: "Transaction deleted successfully",
       });
+      // Dispatch custom event for immediate UI updates
+      window.dispatchEvent(new CustomEvent('transactionChanged'));
     }
     setDeleteId(null);
   };
