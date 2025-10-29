@@ -52,10 +52,10 @@ serve(async (req) => {
       }, {} as Record<string, number>);
 
     const context = `
-User's Financial Data:
-- Total Income: ${totalIncome}
-- Total Expenses: ${totalExpenses}
-- Net Savings: ${totalIncome - totalExpenses}
+User's Financial Data (all amounts in Indian Rupees ₹):
+- Total Income: ₹${totalIncome}
+- Total Expenses: ₹${totalExpenses}
+- Net Savings: ₹${totalIncome - totalExpenses}
 - Expense by Category: ${JSON.stringify(categoryBreakdown)}
 
 Transaction History (last 100):
@@ -63,7 +63,7 @@ ${JSON.stringify(transactions.slice(0, 20))}
 
 User Question: ${question}
 
-Provide a helpful, personalized answer based on their actual financial data. Include specific numbers and actionable advice.
+Provide a helpful, personalized answer based on their actual financial data. Include specific numbers with ₹ symbol and actionable advice.
 `;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -77,7 +77,7 @@ Provide a helpful, personalized answer based on their actual financial data. Inc
         messages: [
           {
             role: 'system',
-            content: 'You are a knowledgeable financial advisor. Provide clear, actionable advice based on the user\'s transaction data. Be encouraging and helpful.'
+            content: 'You are a knowledgeable financial advisor. Provide clear, actionable advice based on the user\'s transaction data. Be encouraging and helpful. Always use ₹ (Indian Rupees) symbol when mentioning amounts.'
           },
           { role: 'user', content: context }
         ],

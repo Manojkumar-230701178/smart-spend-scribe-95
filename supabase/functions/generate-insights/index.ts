@@ -53,15 +53,15 @@ serve(async (req) => {
     // Predictive spending (simple average-based forecast)
     const monthlyAvg = totalExpenses / Math.max(1, new Set(transactions.map(t => t.date.slice(0, 7))).size);
 
-    const prompt = `Analyze this financial data and provide 5-6 insights:
+    const prompt = `Analyze this financial data and provide 5-6 insights (all amounts are in Indian Rupees ₹):
 
 Financial Overview:
-- Total Income: ${totalIncome}
-- Total Expenses: ${totalExpenses}
+- Total Income: ₹${totalIncome}
+- Total Expenses: ₹${totalExpenses}
 - Expense-to-Income Ratio: ${expenseToIncomeRatio}%
 - Top Spending Category: ${topCategory} (${topCategoryPercent}% of expenses)
-- Average Monthly Spending: ${monthlyAvg.toFixed(2)}
-- Predicted Next Month Spending: ${monthlyAvg.toFixed(2)}
+- Average Monthly Spending: ₹${monthlyAvg.toFixed(2)}
+- Predicted Next Month Spending: ₹${monthlyAvg.toFixed(2)}
 - Unusual Transactions Detected: ${anomalies.length}
 
 Recent Transactions: ${JSON.stringify(transactions.slice(0, 10))}
@@ -74,6 +74,7 @@ Provide insights covering:
 5. Any anomalies or unusual patterns
 6. Actionable tips
 
+IMPORTANT: Always mention amounts with ₹ (Indian Rupees) symbol.
 Format each insight as a clear, actionable sentence. Start each with an emoji.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -87,7 +88,7 @@ Format each insight as a clear, actionable sentence. Start each with an emoji.`;
         messages: [
           {
             role: 'system',
-            content: 'You are a financial analyst. Provide clear, specific insights based on the data. Be encouraging but honest about financial health.'
+            content: 'You are a financial analyst. Provide clear, specific insights based on the data. Be encouraging but honest about financial health. Always use ₹ (Indian Rupees) symbol when mentioning amounts.'
           },
           { role: 'user', content: prompt }
         ],
