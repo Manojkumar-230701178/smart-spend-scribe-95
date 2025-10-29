@@ -50,7 +50,40 @@ serve(async (req) => {
     const avgExpense = expenseAmounts.reduce((a, b) => a + b, 0) / expenseAmounts.length;
     const anomalies = transactions.filter(t => t.type === 'expense' && parseFloat(t.amount) > avgExpense * 2);
 
-    // Predictive spending (simple average-based forecast)
+    // Calculate trend-based prediction
+    const monthlyTotals: Record<string, number> = {};
+    transactions
+      .filter(t => t.type === 'expense')
+      .forEach(t => {
+        const month = t.date.slice(0, 7);
+        monthlyTotals[month] = (monthlyTotals[month] || 0) + parseFloat(t.amount);
+      });
+
+    const sortedMonths = Object.entries(monthlyTotals).sort((a, b) => a[0].localeCompare(b[0]));
+    const recentMonths = sortedMonths.slice(-3); // Last 3 months
+    
+    let predictedNextMonth = 0;
+    if (recentMonths.length >= 2) {
+      // Calculate weighted average with trend
+      const weights = [1, 1.5, 2]; // More weight to recent months
+      const weightedSum = recentMonths.reduce((sum, [, amount], idx) => {
+        const weight = weights[weights.length - recentMonths.length + idx] || 1;
+        return sum + amount * weight;
+      }, 0);
+      const totalWeight = weights.slice(-recentMonths.length).reduce((a, b) => a + b, 0);
+      const weightedAvg = weightedSum / totalWeight;
+
+      // Calculate growth trend
+      const firstMonth = recentMonths[0][1];
+      const lastMonth = recentMonths[recentMonths.length - 1][1];
+      const growthRate = recentMonths.length > 1 ? (lastMonth - firstMonth) / firstMonth : 0;
+      
+      // Apply trend to prediction (cap at 20% growth)
+      predictedNextMonth = weightedAvg * (1 + Math.min(Math.max(growthRate, -0.2), 0.2));
+    } else {
+      predictedNextMonth = totalExpenses / Math.max(1, sortedMonths.length);
+    }
+
     const monthlyAvg = totalExpenses / Math.max(1, new Set(transactions.map(t => t.date.slice(0, 7))).size);
 
     const prompt = `Analyze this financial data and provide 5-6 insights (all amounts are in Indian Rupees ₹):
@@ -61,7 +94,7 @@ Financial Overview:
 - Expense-to-Income Ratio: ${expenseToIncomeRatio}%
 - Top Spending Category: ${topCategory} (${topCategoryPercent}% of expenses)
 - Average Monthly Spending: ₹${monthlyAvg.toFixed(2)}
-- Predicted Next Month Spending: ₹${monthlyAvg.toFixed(2)}
+- Predicted Next Month Spending: ₹${predictedNextMonth.toFixed(2)} (trend-adjusted)
 - Unusual Transactions Detected: ${anomalies.length}
 
 Recent Transactions: ${JSON.stringify(transactions.slice(0, 10))}
